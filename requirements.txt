@@ -1,3 +1,4 @@
 discord.py
 requests
 trafilatura
+beautifulsoup4
