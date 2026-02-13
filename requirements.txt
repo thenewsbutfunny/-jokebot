@@ -2,3 +2,4 @@ discord.py
 requests
 trafilatura
 beautifulsoup4
+openai>=1.0.0
