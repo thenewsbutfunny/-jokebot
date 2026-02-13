@@ -1,6 +1,9 @@
 import discord
 import os
-import openai
+from openai import OpenAI
+
+client_ai = OpenAI(api_key=OPENAI_API_KEY)
+
 import trafilatura
 import requests
 from bs4 import BeautifulSoup
@@ -11,8 +14,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 SOURCE_CHANNEL_ID = 1146171312281227265      # replace with your source channel
 DESTINATION_CHANNEL_ID = 1471606799969947883 # replace with your c3po channel
-
-openai.api_key = OPENAI_API_KEY
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -118,6 +119,7 @@ async def on_message(message):
 
 
 client.run(BOT_TOKEN)
+
 
 
 
