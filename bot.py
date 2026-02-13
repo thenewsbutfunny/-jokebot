@@ -1,7 +1,7 @@
 import os
 import discord
 import requests
-from newspaper import Article
+import trafilatura
 
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -16,13 +16,15 @@ DESTINATION_CHANNEL_ID = 1471606799969947883  # where jokes should be posted
 
 def extract_article_text(url):
     try:
-        article = Article(url)
-        article.download()
-        article.parse()
-        text = f"{article.title}\n\n{article.text}"
+        downloaded = trafilatura.fetch_url(url)
+        text = trafilatura.extract(downloaded)
+
+        if not text:
+            return None  # signal to the caller that extraction failed
+
         return text[:5000]  # keep it safe for the model
     except Exception as e:
-        return f"Could not extract article text: {e}"
+        return None
 
 # ----
 
@@ -98,7 +100,14 @@ async def on_message(message):
     # Only react to messages in the source channel
     if message.channel.id != SOURCE_CHANNEL_ID:
         return
+    article_text = extract_article_text(url)
 
+if article_text is None:
+    await message.channel.send(
+        "I couldn’t extract the article text. Want to paste the key details?"
+    )
+    return
+    
     if message.author.bot:
         return
 
@@ -118,5 +127,6 @@ async def on_message(message):
         jokes = send_to_openai(article_text)
 
         await dest_channel.send(jokes)
+
 
 client.run(BOT_TOKEN)
