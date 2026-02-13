@@ -57,20 +57,19 @@ def extract_article_text(url):
 # -----------------------------
 def send_to_openai(article_text):
     try:
-        response = openai.ChatCompletion.create(
+        response = client_ai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Write a tight anchor-desk joke with heighten-heighten-undercut rhythm."},
+                {"role": "system", "content": "write a tight anchor-desk joke with heighten-heighten-undercut rhythm."},
                 {"role": "user", "content": article_text}
             ],
             max_tokens=300
         )
-        return response["choices"][0]["message"]["content"]
+        return response.choices[0].message.content
 
-    except Exception as e:
-        print("OpenAI error:", e)
-        return "Error generating joke."
-
+    except Exception as ex:
+        print("OpenAI exception:", ex)
+        return None
 
 # -----------------------------
 # DISCORD BOT LOGIC
@@ -119,6 +118,7 @@ async def on_message(message):
 
 
 client.run(BOT_TOKEN)
+
 
 
 
