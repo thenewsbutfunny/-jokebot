@@ -147,9 +147,10 @@ async def on_message(message):
     jokes = send_to_openai(article_text)
 
     # Send jokes
-    await dest_channel.send(jokes)
+   await dest_channel.send(f"{jokes}\n\nOriginal article:\n{article_url}")
 
 client.run(BOT_TOKEN)
+
 
 
 
