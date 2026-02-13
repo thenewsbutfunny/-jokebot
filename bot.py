@@ -6,8 +6,8 @@ import openai
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-SOURCE_CHANNEL_ID = 1234567890      # replace with your source channel
-DESTINATION_CHANNEL_ID = 9876543210 # replace with your c3po channel
+SOURCE_CHANNEL_ID = 1146171312281227265      # replace with your source channel
+DESTINATION_CHANNEL_ID = 1471606799969947883 # replace with your c3po channel
 
 openai.api_key = OPENAI_API_KEY
 
@@ -105,4 +105,5 @@ async def on_message(message):
 
 
 client.run(BOT_TOKEN)
+
 
