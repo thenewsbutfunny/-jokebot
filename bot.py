@@ -26,6 +26,33 @@ def extract_article_text(url):
     except Exception as e:
         return None
 
+from bs4 import BeautifulSoup
+
+def extract_article_text(url):
+    try:
+        # First attempt: trafilatura
+        downloaded = trafilatura.fetch_url(url)
+        text = trafilatura.extract(downloaded)
+        if text:
+            return text[:5000]
+
+        # Second attempt: BeautifulSoup fallback
+        response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # Try common article containers
+        candidates = soup.find_all(["article", "p"])
+        fallback_text = "\n".join([c.get_text(strip=True) for c in candidates])
+
+        if fallback_text:
+            return fallback_text[:5000]
+
+        # Nothing worked
+        return None
+
+    except Exception:
+        return None
+
 # ----
 
 intents = discord.Intents.default()
@@ -135,4 +162,5 @@ async def on_message(message):
     await dest_channel.send(jokes)
 
 client.run(BOT_TOKEN)
+
 
