@@ -97,36 +97,42 @@ If asked to “tighten,” “sharpen,” or “punch up” a joke, rewrite it:
 
 @client.event
 async def on_message(message):
-    # Only react to messages in the source channel
-    if message.channel.id != SOURCE_CHANNEL_ID:
-        return
-    article_text = extract_article_text(url)
-
-if article_text is None:
-    await message.channel.send(
-        "I couldn’t extract the article text. Want to paste the key details?"
-    )
-    return
-    
+    # Ignore bot messages
     if message.author.bot:
         return
 
+    # Only react to messages in the source channel
+    if message.channel.id != SOURCE_CHANNEL_ID:
+        return
+
     # Only react to links
-    if "http" in message.content:
-        dest_channel = client.get_channel(DESTINATION_CHANNEL_ID)
+    if "http" not in message.content:
+        return
 
-        if dest_channel is None:
-            print("Error: Destination channel not found.")
-            return
+    article_url = message.content.strip()
 
-        await dest_channel.send("Reading article…")
+    # Extract article text
+    article_text = extract_article_text(article_url)
 
-        article_url = message.content.strip()
-        article_text = extract_article_text(article_url)
+    if article_text is None:
+        await message.channel.send(
+            "I couldn’t extract the article text. Want to paste the key details?"
+        )
+        return
 
-        jokes = send_to_openai(article_text)
+    # Send status to destination channel
+    dest_channel = client.get_channel(DESTINATION_CHANNEL_ID)
+    if dest_channel is None:
+        print("Error: Destination channel not found.")
+        return
 
-        await dest_channel.send(jokes)
+    await dest_channel.send("Reading article…")
 
+    # Generate jokes
+    jokes = send_to_openai(article_text)
+
+    # Send jokes
+    await dest_channel.send(jokes)
 
 client.run(BOT_TOKEN)
+
