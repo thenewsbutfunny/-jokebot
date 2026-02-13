@@ -14,18 +14,6 @@ DESTINATION_CHANNEL_ID = 1471606799969947883  # where jokes should be posted
 
 # ---------------
 
-def extract_article_text(url):
-    try:
-        downloaded = trafilatura.fetch_url(url)
-        text = trafilatura.extract(downloaded)
-
-        if not text:
-            return None  # signal to the caller that extraction failed
-
-        return text[:5000]  # keep it safe for the model
-    except Exception as e:
-        return None
-
 from bs4 import BeautifulSoup
 
 def extract_article_text(url):
@@ -33,6 +21,7 @@ def extract_article_text(url):
         # First attempt: trafilatura
         downloaded = trafilatura.fetch_url(url)
         text = trafilatura.extract(downloaded)
+
         if text:
             return text[:5000]
 
@@ -44,10 +33,9 @@ def extract_article_text(url):
         candidates = soup.find_all(["article", "p"])
         fallback_text = "\n".join([c.get_text(strip=True) for c in candidates])
 
-        if fallback_text:
+        if fallback_text.strip():
             return fallback_text[:5000]
 
-        # Nothing worked
         return None
 
     except Exception:
@@ -162,5 +150,6 @@ async def on_message(message):
     await dest_channel.send(jokes)
 
 client.run(BOT_TOKEN)
+
 
 
