@@ -1,7 +1,9 @@
 import discord
 import os
 import trafilatura
-import openai
+import requests
+from bs4 import BeautifulSoup
+
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -19,24 +21,36 @@ client = discord.Client(intents=intents)
 # -----------------------------
 # ARTICLE EXTRACTION (FIXED)
 # -----------------------------
+from bs4 import BeautifulSoup
+import requests
+
 def extract_article_text(url):
     try:
+        # First attempt: Trafilatura
         downloaded = trafilatura.fetch_url(url)
-        if not downloaded:
-            print("Trafilatura could not fetch the URL")
-            return None
+        text = trafilatura.extract(downloaded) if downloaded else None
 
-        text = trafilatura.extract(downloaded)
-        if not text:
-            print("Trafilatura could not extract text")
-            return None
+        if text:
+            return text
 
-        return text
+        print("Trafilatura failed, falling back to BeautifulSoup")
+
+        # Second attempt: BeautifulSoup
+        response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        paragraphs = soup.find_all("p")
+        fallback = "\n".join(p.get_text(strip=True) for p in paragraphs)
+
+        if fallback.strip():
+            return fallback
+
+        print("BeautifulSoup fallback also failed")
+        return None
 
     except Exception as e:
         print("Extraction error:", e)
         return None
-
 
 # -----------------------------
 # OPENAI JOKE GENERATION
@@ -105,5 +119,6 @@ async def on_message(message):
 
 
 client.run(BOT_TOKEN)
+
 
 
