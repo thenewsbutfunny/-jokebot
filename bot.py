@@ -1,115 +1,66 @@
-import os
 import discord
-import requests
+import os
 import trafilatura
-
+import openai
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# --- CONFIG ---
+SOURCE_CHANNEL_ID = 1234567890      # replace with your source channel
+DESTINATION_CHANNEL_ID = 9876543210 # replace with your c3po channel
 
-SOURCE_CHANNEL_ID = 1146171312281227265      # where article links appear
-DESTINATION_CHANNEL_ID = 1471606799969947883  # where jokes should be posted
-
-# ---------------
-
-from bs4 import BeautifulSoup
-
-def extract_article_text(url):
-    try:
-        # First attempt: trafilatura
-        downloaded = trafilatura.fetch_url(url)
-        text = trafilatura.extract(downloaded)
-
-        if text:
-            return text[:5000]
-
-        # Second attempt: BeautifulSoup fallback
-        response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        # Try common article containers
-        candidates = soup.find_all(["article", "p"])
-        fallback_text = "\n".join([c.get_text(strip=True) for c in candidates])
-
-        if fallback_text.strip():
-            return fallback_text[:5000]
-
-        return None
-
-    except Exception:
-        return None
-
-# ----
+openai.api_key = OPENAI_API_KEY
 
 intents = discord.Intents.default()
 intents.message_content = True
-
 client = discord.Client(intents=intents)
 
+
+# -----------------------------
+# ARTICLE EXTRACTION (FIXED)
+# -----------------------------
+def extract_article_text(url):
+    try:
+        downloaded = trafilatura.fetch_url(url)
+        if not downloaded:
+            print("Trafilatura could not fetch the URL")
+            return None
+
+        text = trafilatura.extract(downloaded)
+        if not text:
+            print("Trafilatura could not extract text")
+            return None
+
+        return text
+
+    except Exception as e:
+        print("Extraction error:", e)
+        return None
+
+
+# -----------------------------
+# OPENAI JOKE GENERATION
+# -----------------------------
 def send_to_openai(article_text):
-    response = requests.post(
-        "https://api.openai.com/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "model": "gpt-4o-mini",
-            "messages": [
-               {"role": "system", "content": """
-You write Weekend Update–style jokes in Matthew’s exact comedic voice.
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Write a tight anchor-desk joke with heighten-heighten-undercut rhythm."},
+                {"role": "user", "content": article_text}
+            ],
+            max_tokens=300
+        )
+        return response["choices"][0]["message"]["content"]
 
-STRUCTURE (follow this every time):
+    except Exception as e:
+        print("OpenAI error:", e)
+        return "Error generating joke."
 
-1. CLEAN FACTUAL SETUP
-   - One sentence.
-   - Straight news copy.
-   - No jokes, no commentary, no editorializing.
 
-2. HEIGHTEN
-   - Add a second factual detail that escalates the situation.
-   - Still no jokes.
-
-3. HEIGHTEN AGAIN
-   - Add a third factual detail that pushes the absurdity further.
-   - Still no jokes.
-
-4. UNDERCUT PUNCHLINE
-   - One sentence.
-   - Dry, simple, understated.
-   - Trust the audience to connect the dots.
-   - No explaining the joke.
-   - No clever wordplay unless extremely minimal.
-   - Delivery should feel like Kevin Nealon’s formality with Norm Macdonald’s deadpan undercut.
-
-STYLE RULES:
-- The punchline must ONLY use information already stated in the setups.
-- Do NOT introduce new facts, characters, foods, locations, or concepts.
-- Prefer contrast over cleverness.
-- Never overwrite the punchline.
-- Never explain why something is funny.
-- Keep the entire packet tight and economical.
-- Leave room for performance choices (tone shifts, deadpan tags, graphics, accents).
-- No hyperlinks in the final joke.
-
-TIGHTENING MODE:
-If asked to “tighten,” “sharpen,” or “punch up” a joke, rewrite it:
-- shorter,
-- drier,
-- with a cleaner undercut,
-- and with zero added information.
-"""},
-                {
-                    "role": "user",
-                    "content": f"Here is an article. Extract the core news event and write one joke packet in the style described above:\n\n{article_text}"
-                }
-            ]
-        }
-    )
-    return response.json()["choices"][0]["message"]["content"]
-
+# -----------------------------
+# DISCORD BOT LOGIC
+# -----------------------------
 @client.event
 async def on_message(message):
     # Ignore bot messages
@@ -129,6 +80,9 @@ async def on_message(message):
     # Extract article text
     article_text = extract_article_text(article_url)
 
+    print("URL:", article_url)
+    print("Extracted text:", article_text[:200] if article_text else "NONE")
+
     if article_text is None:
         await message.channel.send(
             "I couldn’t extract the article text. Want to paste the key details?"
@@ -141,16 +95,13 @@ async def on_message(message):
         print("Error: Destination channel not found.")
         return
 
-    await dest_channel.send("Reading article…")
+    await dest_channel.send("Reading article...")
 
     # Generate jokes
     jokes = send_to_openai(article_text)
 
-    # Send jokes
-   await dest_channel.send(f"{jokes}\n\nOriginal article:\n{article_url}")
+    # Send jokes + original link
+    await dest_channel.send(f"{jokes}\n\nOriginal article:\n{article_url}")
+
 
 client.run(BOT_TOKEN)
-
-
-
-
