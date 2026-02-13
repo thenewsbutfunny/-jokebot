@@ -1,5 +1,6 @@
 import discord
 import os
+import openai
 import trafilatura
 import requests
 from bs4 import BeautifulSoup
@@ -21,8 +22,6 @@ client = discord.Client(intents=intents)
 # -----------------------------
 # ARTICLE EXTRACTION (FIXED)
 # -----------------------------
-from bs4 import BeautifulSoup
-import requests
 
 def extract_article_text(url):
     try:
@@ -119,6 +118,7 @@ async def on_message(message):
 
 
 client.run(BOT_TOKEN)
+
 
 
 
