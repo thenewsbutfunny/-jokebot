@@ -1,29 +1,34 @@
 import discord
 import os
 from openai import OpenAI
-
-client_ai = OpenAI(api_key=OPENAI_API_KEY)
-
 import trafilatura
 import requests
 from bs4 import BeautifulSoup
 
-
+# -----------------------------
+# ENVIRONMENT VARIABLES
+# -----------------------------
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-SOURCE_CHANNEL_ID = 1146171312281227265      # replace with your source channel
-DESTINATION_CHANNEL_ID = 1471606799969947883 # replace with your c3po channel
+SOURCE_CHANNEL_ID = 1146171312281227265   # your source channel
+DESTINATION_CHANNEL_ID = 1471606799969947883  # your c3po channel
 
+# -----------------------------
+# OPENAI CLIENT (NEW SDK)
+# -----------------------------
+client_ai = OpenAI(api_key=OPENAI_API_KEY)
+
+# -----------------------------
+# DISCORD CLIENT
+# -----------------------------
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
-
 # -----------------------------
-# ARTICLE EXTRACTION (FIXED)
+# ARTICLE EXTRACTION
 # -----------------------------
-
 def extract_article_text(url):
     try:
         # First attempt: Trafilatura
@@ -48,8 +53,8 @@ def extract_article_text(url):
         print("BeautifulSoup fallback also failed")
         return None
 
-    except Exception as e:
-        print("Extraction error:", e)
+    except Exception as ex:
+        print("Extraction error:", ex)
         return None
 
 # -----------------------------
@@ -60,8 +65,14 @@ def send_to_openai(article_text):
         response = client_ai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "write a tight anchor-desk joke with heighten-heighten-undercut rhythm."},
-                {"role": "user", "content": article_text}
+                {
+                    "role": "system",
+                    "content": "Write a tight anchor-desk joke with heighten-heighten-undercut rhythm."
+                },
+                {
+                    "role": "user",
+                    "content": article_text
+                }
             ],
             max_tokens=300
         )
@@ -113,14 +124,14 @@ async def on_message(message):
     # Generate jokes
     jokes = send_to_openai(article_text)
 
+    if jokes is None:
+        await dest_channel.send("Error generating joke.")
+        return
+
     # Send jokes + original link
     await dest_channel.send(f"{jokes}\n\nOriginal article:\n{article_url}")
 
-
+# -----------------------------
+# RUN THE BOT
+# -----------------------------
 client.run(BOT_TOKEN)
-
-
-
-
-
-
